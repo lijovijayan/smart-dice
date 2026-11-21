@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Smart Dice</title>
+    <link rel="stylesheet" href="./src/styles/main.css" />
+    <script src="./vendor/three/three.min.js"></script>
+    <script type="module" src="./src/main.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+          <rect
+            x="3"
+            y="3"
+            width="18"
+            height="18"
+            rx="5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          <circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" />
+        </svg>
+        <div>
+          <h1>Smart Dice</h1>
+          <p class="sub">XIAO nRF52840 Sense over Bluetooth LE</p>
+        </div>
+      </div>
+      <div class="actions">
+        <span id="status" class="status"
+          ><i class="dot"></i><span id="status-text">Not connected</span></span
+        >
+        <button id="toggle" type="button" disabled>Connect</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="view" class="view">
+        <span id="mode" class="badge">Demo</span>
+        <p id="hint" class="hint"></p>
+      </section>
+
+      <aside class="panel">
+        <div class="card">
+          <h2>Upper face</h2>
+          <div class="face-row">
+            <p id="face" class="big" aria-live="polite">–</p>
+            <p id="stable" class="pill" data-kind="moving">Moving</p>
+          </div>
+          <div id="faces" class="faces" role="group" aria-label="Faces"></div>
+        </div>
+
+        <div class="card">
+          <h2>Accelerometer (g)</h2>
+          <div class="axes">
+            <div class="axis" data-axis="x">
+              <span class="axis-name">X</span>
+              <span class="bar"><i id="bar-ax"></i></span>
+              <span id="ax" class="axis-value">0.00</span>
+            </div>
+            <div class="axis" data-axis="y">
+              <span class="axis-name">Y</span>
+              <span class="bar"><i id="bar-ay"></i></span>
+              <span id="ay" class="axis-value">0.00</span>
+            </div>
+            <div class="axis" data-axis="z">
+              <span class="axis-name">Z</span>
+              <span class="bar"><i id="bar-az"></i></span>
+              <span id="az" class="axis-value">1.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Recent rolls</h2>
+          <div id="history" class="history"></div>
+          <p id="history-empty" class="empty">Rolls show up here once the die settles.</p>
+        </div>
+
+        <p id="message" class="message" role="status"></p>
+      </aside>
+    </main>
+  </body>
+</html>

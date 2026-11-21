@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Dice tests</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        background: #0b0f17;
+        color: #e6ebf5;
+      }
+      li.pass::before {
+        content: 'PASS ';
+        color: #34c98b;
+      }
+      li.fail::before {
+        content: 'FAIL ';
+        color: #ff8a8a;
+      }
+      li.fail small {
+        display: block;
+        color: #ff8a8a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Smart Dice tests</h1>
+    <p id="summary">Running…</p>
+    <ul id="results"></ul>
+    <script type="module" src="./run.js"></script>
+  </body>
+</html>
