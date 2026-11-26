@@ -1,3 +1,9 @@
+/* The one stylesheet the page loads: shared styles first, then one file per feature.
+   Adding a page's styles takes one line here. */
+/* ---- styles/base.css ---- */
+/* The app's shared styles: theme, header, page layout, and building blocks (cards, buttons, chips).
+   Anything only one page uses belongs in that page's folder under src/features/. */
+
 /* --face is the color of the current upper face. Registering it lets it fade between faces. */
 @property --face {
   syntax: '<color>';
@@ -141,6 +147,57 @@ h2 {
   }
 }
 
+/* Page tabs, one per feature */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(10 14 22 / 60%);
+}
+
+.tabs a {
+  padding: 6px 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.tabs a:hover {
+  color: var(--text);
+}
+
+.tabs a[aria-current='page'] {
+  background: color-mix(in srgb, var(--face) 22%, transparent);
+  color: var(--text);
+}
+
+.tabs a:focus-visible {
+  outline: 2px solid var(--face);
+  outline-offset: 2px;
+}
+
+/* A line under the header for app-wide messages, such as a failed connection. */
+.notice {
+  margin: 0;
+  padding: 10px 24px 0;
+  font-size: 13px;
+  color: var(--error);
+}
+
+.notice:empty {
+  display: none;
+}
+
+/* Buttons */
+
 button {
   padding: 8px 18px;
   border: 1px solid var(--btn, var(--ok));
@@ -179,15 +236,724 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Layout */
+button.primary {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 18px;
+  background: color-mix(in srgb, var(--btn, var(--ok)) 16%, transparent);
+}
 
-main {
+button.wide {
+  width: 100%;
+}
+
+/* Page layout: every feature fills a .page, usually a main area plus a side .panel. */
+
+.pages {
+  display: contents;
+}
+
+.page {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 16px;
   padding: 16px 24px 24px;
 }
+
+/* Each page fades and rises in when it is shown. */
+.page:not([hidden]) {
+  animation: page-in 420ms ease-out;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+
+.empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* A small toggle button, colored by --c. aria-pressed marks the chosen one. */
+.chip {
+  padding: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  box-shadow: none;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+  box-shadow: 0 0 16px -3px var(--c);
+}
+
+.chip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.chip:disabled[aria-pressed='true'] {
+  opacity: 1;
+}
+
+/* Smaller screens */
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+    padding: 12px 16px 20px;
+  }
+
+  header {
+    padding: 12px 16px;
+  }
+
+  .notice {
+    padding: 10px 16px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---- features/game/game.css ---- */
+/* Snake and Ladder styles. Shared building blocks (cards, chips, buttons) come from base.css. */
+
+/* Board */
+
+.board-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #172033 0%, #0e1420 100%);
+  overflow: hidden;
+}
+
+/* A slow drifting glow behind the board, tinted by the last die face. */
+.board-card::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in srgb, var(--face) 16%, transparent),
+    transparent 55%
+  );
+  pointer-events: none;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+  }
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.board-svg {
+  display: block;
+  width: 100%;
+  max-width: 680px;
+  max-height: calc(100vh - 150px);
+  user-select: none;
+}
+
+.square {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.square.even {
+  fill: #172033;
+}
+
+.square.odd {
+  fill: #121a29;
+}
+
+.square.ladder-base {
+  fill: #14302c;
+}
+
+.square.snake-head {
+  fill: #2f1c28;
+}
+
+.square.goal {
+  fill: #3a3217;
+}
+
+.square-number {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.start-strip {
+  fill: #0e1420;
+  stroke: var(--line);
+}
+
+.start-label {
+  fill: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+/* Squares pop in one after another when the board loads. */
+.cell {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cell-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 7ms);
+}
+
+@keyframes cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Ladders */
+
+.ladder-rail {
+  stroke: #d9a35b;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.ladder-rung {
+  stroke: #b9823d;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* Ladders draw themselves in, rail and rungs alike. */
+.ladder-rail,
+.ladder-rung {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-line 700ms ease-out forwards;
+  animation-delay: calc(var(--i) * 90ms + 500ms);
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* While a token climbs, its ladder glows. The rungs flash one by one as the token passes. */
+.ladder-rail,
+.ladder-rung {
+  transition:
+    stroke 160ms ease,
+    filter 200ms ease;
+}
+
+.ladder.lit {
+  filter: drop-shadow(0 0 5px rgb(255 209 102 / 70%));
+}
+
+.ladder.lit .ladder-rail {
+  stroke: #ffd166;
+}
+
+.ladder.lit .ladder-rung {
+  stroke: #f0b85a;
+}
+
+/* Snakes */
+
+/* Snakes slide in from their heads. */
+.snake {
+  animation: snake-in 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 90ms + 600ms);
+}
+
+@keyframes snake-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The body is a filled, tapered shape redrawn by the board code while the snake moves. */
+.snake-shadow {
+  fill: rgb(0 0 0 / 35%);
+}
+
+.snake-body {
+  stroke: rgb(0 0 0 / 28%);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.snake-sheen {
+  fill: none;
+  stroke: rgb(255 255 255 / 22%);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.snake-spot {
+  fill: rgb(0 0 0 / 22%);
+}
+
+.snake-head {
+  stroke: rgb(0 0 0 / 30%);
+  stroke-width: 1.2;
+}
+
+.snake-mouth {
+  fill: #2a0f16;
+}
+
+.snake-eye {
+  fill: #0a0e16;
+}
+
+.snake-tongue {
+  stroke: var(--error);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: flick 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -700ms);
+}
+
+@keyframes flick {
+  0%,
+  70%,
+  100% {
+    transform: scaleX(1);
+  }
+  76% {
+    transform: scaleX(0.25);
+  }
+  84% {
+    transform: scaleX(1.15);
+  }
+}
+
+/* A snake that has caught a token glows faintly. */
+.snake {
+  transition: filter 240ms ease;
+}
+
+.snake.angry {
+  filter: drop-shadow(0 0 5px rgb(255 93 93 / 40%));
+}
+
+.spark {
+  pointer-events: none;
+}
+
+/* Tokens */
+
+.token-shadow {
+  fill: rgb(0 0 0 / 45%);
+}
+
+.token-gloss {
+  fill: rgb(255 255 255 / 45%);
+  pointer-events: none;
+}
+
+.ripple {
+  fill: none;
+  stroke-width: 3;
+  pointer-events: none;
+}
+
+.token-dot {
+  stroke: #fff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 55%));
+}
+
+.token-ring {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.token.active .token-ring {
+  opacity: 0.85;
+  animation: ring 1.4s ease-in-out infinite;
+}
+
+@keyframes ring {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Win overlay */
+
+.winner {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgb(10 14 22 / 78%);
+  backdrop-filter: blur(4px);
+  animation: fade-in 380ms ease-out;
+}
+
+.winner-text {
+  margin: 0;
+  color: var(--player);
+  font-size: 44px;
+  font-weight: 700;
+  text-shadow: 0 0 30px color-mix(in srgb, var(--player) 55%, transparent);
+  animation: winner-in 700ms cubic-bezier(0.2, 0.9, 0.3, 1.3) 120ms both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes winner-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Confetti pieces are created by the page and removed when they finish falling. */
+.confetti {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--c);
+  pointer-events: none;
+}
+
+/* Side panel */
+
+.turn-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  perspective: 500px;
+}
+
+/* The die flips over when a roll starts, then lands on its face. */
+.die.tumbling {
+  animation: tumble 560ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@keyframes tumble {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg) translateY(0);
+  }
+  40% {
+    transform: rotateX(200deg) rotateY(160deg) translateY(-18px);
+  }
+  75% {
+    transform: rotateX(330deg) rotateY(300deg) translateY(0);
+  }
+  88% {
+    transform: rotateX(356deg) rotateY(346deg) translateY(-5px);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg) translateY(0);
+  }
+}
+
+.die {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 68px;
+  height: 68px;
+  padding: 9px;
+  border: 2px solid var(--c);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  box-shadow: 0 0 22px -8px var(--c);
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.die span {
+  align-self: center;
+  justify-self: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition:
+    background 120ms ease,
+    transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+
+.die span.on {
+  background: var(--c);
+  box-shadow: 0 0 8px var(--c);
+  transform: scale(1.15);
+}
+
+.turn-text {
+  margin: 0 0 4px;
+  color: var(--player, var(--text));
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.turn-text.pop {
+  animation: turn-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+@keyframes turn-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.players {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.player[aria-current] {
+  border-color: color-mix(in srgb, var(--player) 60%, transparent);
+  background: color-mix(in srgb, var(--player) 12%, transparent);
+}
+
+.player-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--player);
+  box-shadow: 0 0 10px -1px var(--player);
+}
+
+/* The player whose turn it is has a pulsing dot. */
+.player[aria-current] .player-dot {
+  animation: pulse-dot 1.6s ease-out infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--player) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* The name is a text field that looks like plain text until it is hovered or focused. */
+.player-name {
+  width: 100%;
+  min-width: 0;
+  margin: -3px -6px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-overflow: ellipsis;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.player-name:hover {
+  border-color: var(--line, rgba(255, 255, 255, 0.15));
+}
+
+.player-name:focus {
+  outline: none;
+  border-color: var(--player);
+  background: color-mix(in srgb, var(--player) 14%, transparent);
+}
+
+/* Undo and redo sit side by side under the Roll button. */
+.history {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.player-square {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.setup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 12px;
+}
+
+.count {
+  display: flex;
+  gap: 6px;
+}
+
+.count .chip {
+  --c: var(--ok);
+  width: 38px;
+}
+
+.moves {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.moves li:first-child {
+  color: var(--text);
+}
+
+.moves li.fresh {
+  animation: slide-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .board-card {
+    min-height: 0;
+  }
+
+  .board-svg {
+    max-height: none;
+  }
+}
+
+/* ---- features/dashboard/dashboard.css ---- */
+/* Dice dashboard styles. Shared building blocks (cards, chips, buttons) come from base.css. */
 
 .view {
   position: relative;
@@ -246,19 +1012,6 @@ main {
   text-align: center;
   font-size: 12px;
   color: var(--muted);
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.card {
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
 }
 
 /* Upper face */
@@ -328,36 +1081,6 @@ main {
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin-top: 16px;
-}
-
-.chip {
-  padding: 8px 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--c);
-  font-variant-numeric: tabular-nums;
-}
-
-.chip:hover:not(:disabled) {
-  border-color: var(--c);
-  background: color-mix(in srgb, var(--c) 12%, transparent);
-  box-shadow: none;
-}
-
-.chip[aria-pressed='true'] {
-  border-color: var(--c);
-  background: color-mix(in srgb, var(--c) 22%, transparent);
-  box-shadow: 0 0 16px -3px var(--c);
-}
-
-.chip:disabled {
-  cursor: default;
-  opacity: 0.55;
-}
-
-.chip:disabled[aria-pressed='true'] {
-  opacity: 1;
 }
 
 /* Accelerometer */
@@ -472,48 +1195,9 @@ main {
   }
 }
 
-.empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.message {
-  margin: 0;
-  font-size: 13px;
-  color: var(--error);
-}
-
-.message:empty {
-  display: none;
-}
-
-/* Smaller screens */
-
 @media (max-width: 900px) {
-  main {
-    grid-template-columns: 1fr;
-    padding: 12px 16px 20px;
-  }
-
   .view {
     min-height: 56vh;
   }
-
-  header {
-    padding: 12px 16px;
-  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    transition: none;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}

@@ -1,6 +1,6 @@
 /* global THREE */
 
-import { FACE_COLORS, FACE_PIPS } from '../dice/faces.js';
+import { FACE_COLORS, FACE_PIPS } from '../../../dice/faces.js';
 
 const TEXTURE_SIZE = 512;
 const PIP_EDGE = 0.25;

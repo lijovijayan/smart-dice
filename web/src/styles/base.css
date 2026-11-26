@@ -1,0 +1,355 @@
+/* The app's shared styles: theme, header, page layout, and building blocks (cards, buttons, chips).
+   Anything only one page uses belongs in that page's folder under src/features/. */
+
+/* --face is the color of the current upper face. Registering it lets it fade between faces. */
+@property --face {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #4f7cff;
+}
+
+:root {
+  --bg: #0a0e16;
+  --panel: #121926;
+  --panel-2: #172033;
+  --line: #243044;
+  --text: #e6ebf5;
+  --muted: #8a96ab;
+  --ok: #34c98b;
+  --warn: #f2a13a;
+  --info: #4f7cff;
+  --error: #ff8a8a;
+  --radius: 14px;
+  --face: #4f7cff;
+  transition: --face 450ms ease;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(900px 500px at 15% -10%, color-mix(in srgb, var(--face) 10%, transparent), transparent),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Header */
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgb(10 14 22 / 70%);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  color: var(--face);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--face) 60%, transparent));
+}
+
+h1 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status.ok {
+  color: var(--ok);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.status.ok .dot {
+  background: var(--ok);
+  animation: pulse 2s ease-out infinite;
+}
+
+.status.busy .dot {
+  background: var(--warn);
+  animation: pulse-warn 1s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(52 201 139 / 55%);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgb(52 201 139 / 0%);
+  }
+}
+
+@keyframes pulse-warn {
+  0% {
+    box-shadow: 0 0 0 0 rgb(242 161 58 / 55%);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgb(242 161 58 / 0%);
+  }
+}
+
+/* Page tabs, one per feature */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(10 14 22 / 60%);
+}
+
+.tabs a {
+  padding: 6px 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.tabs a:hover {
+  color: var(--text);
+}
+
+.tabs a[aria-current='page'] {
+  background: color-mix(in srgb, var(--face) 22%, transparent);
+  color: var(--text);
+}
+
+.tabs a:focus-visible {
+  outline: 2px solid var(--face);
+  outline-offset: 2px;
+}
+
+/* A line under the header for app-wide messages, such as a failed connection. */
+.notice {
+  margin: 0;
+  padding: 10px 24px 0;
+  font-size: 13px;
+  color: var(--error);
+}
+
+.notice:empty {
+  display: none;
+}
+
+/* Buttons */
+
+button {
+  padding: 8px 18px;
+  border: 1px solid var(--btn, var(--ok));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--btn, var(--ok));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 100ms ease,
+    box-shadow 150ms ease;
+}
+
+button[data-connected='true'] {
+  --btn: var(--error);
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--btn, var(--ok)) 14%, transparent);
+  box-shadow: 0 0 18px -6px var(--btn, var(--ok));
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--face);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 18px;
+  background: color-mix(in srgb, var(--btn, var(--ok)) 16%, transparent);
+}
+
+button.wide {
+  width: 100%;
+}
+
+/* Page layout: every feature fills a .page, usually a main area plus a side .panel. */
+
+.pages {
+  display: contents;
+}
+
+.page {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+
+/* Each page fades and rises in when it is shown. */
+.page:not([hidden]) {
+  animation: page-in 420ms ease-out;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+
+.empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* A small toggle button, colored by --c. aria-pressed marks the chosen one. */
+.chip {
+  padding: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  box-shadow: none;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+  box-shadow: 0 0 16px -3px var(--c);
+}
+
+.chip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.chip:disabled[aria-pressed='true'] {
+  opacity: 1;
+}
+
+/* Smaller screens */
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+    padding: 12px 16px 20px;
+  }
+
+  header {
+    padding: 12px 16px;
+  }
+
+  .notice {
+    padding: 10px 16px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

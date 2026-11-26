@@ -1,0 +1,5 @@
+/* The one stylesheet the page loads: shared styles first, then one file per feature.
+   Adding a page's styles takes one line here. */
+@import './base.css';
+@import '../features/game/game.css';
+@import '../features/dashboard/dashboard.css';

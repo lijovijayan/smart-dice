@@ -1,12 +1,27 @@
-// Keeps the header and side panel in sync with the dice state.
+// Keeps the dashboard's side panel in sync with the dice state.
 
-import { FACE_NUMBERS, NO_FACE, faceColor } from '../dice/faces.js';
+import { FACE_NUMBERS, NO_FACE, faceColor } from '../../dice/faces.js';
+import { refsOf, restartClass } from '../../shared/dom.js';
 
-const UNSUPPORTED_MESSAGE =
-  'This browser has no Web Bluetooth. Use Chrome or Edge on a laptop or Android phone.';
 const HINT_DEMO = 'Press 1–6 or tap a face. Drag to rotate, double-click to reset.';
 const HINT_LIVE = 'Drag to rotate, double-click to reset.';
 const STABLE_LABELS = { stable: 'Stable', settling: 'Settling', moving: 'Moving' };
+
+const REF_NAMES = [
+  'mode',
+  'hint',
+  'face',
+  'stable',
+  'faces',
+  'ax',
+  'ay',
+  'az',
+  'barAx',
+  'barAy',
+  'barAz',
+  'history',
+  'historyEmpty',
+];
 
 function stableKind({ face, stable }) {
   if (stable) return 'stable';
@@ -21,38 +36,13 @@ function setAxisBar(bar, value) {
 }
 
 /**
- * @param {Document} doc
- * @param {{ onToggle: () => void, onPickFace: (face: number) => void }} handlers
- * @returns {{ render: (snapshot: object) => void }}
+ * @param {HTMLElement} root the dashboard page
+ * @param {{ onPickFace: (face: number) => void }} handlers
+ * @returns {{ render: (snapshot: import('../../dice/service.js').DiceSnapshot) => void }}
  */
-export function bindPanel(doc, { onToggle, onPickFace }) {
-  const el = (id) => {
-    const node = doc.getElementById(id);
-    if (!node) throw new Error(`Missing #${id} element`);
-    return node;
-  };
-
-  const refs = {
-    status: el('status'),
-    statusText: el('status-text'),
-    toggle: el('toggle'),
-    mode: el('mode'),
-    hint: el('hint'),
-    face: el('face'),
-    stable: el('stable'),
-    faces: el('faces'),
-    ax: el('ax'),
-    ay: el('ay'),
-    az: el('az'),
-    barAx: el('bar-ax'),
-    barAy: el('bar-ay'),
-    barAz: el('bar-az'),
-    history: el('history'),
-    historyEmpty: el('history-empty'),
-    message: el('message'),
-  };
-
-  refs.toggle.addEventListener('click', onToggle);
+export function bindPanel(root, { onPickFace }) {
+  const doc = root.ownerDocument;
+  const refs = refsOf(root, REF_NAMES);
 
   // One button per face. They act as the demo remote and mark the upper face.
   const chips = FACE_NUMBERS.map((face) => {
@@ -90,27 +80,12 @@ export function bindPanel(doc, { onToggle, onPickFace }) {
   function renderFace(face) {
     if (face === shownFace) return;
     shownFace = face;
-    doc.documentElement.style.setProperty('--face', faceColor(face));
     refs.face.textContent = face === NO_FACE ? '–' : String(face);
     // Replay the pop animation.
-    refs.face.classList.remove('pop');
-    void refs.face.offsetWidth;
-    refs.face.classList.add('pop');
+    restartClass(refs.face, 'pop');
   }
 
-  function render({ state, rolls, deviceName, connected, busy, error, supported }) {
-    refs.statusText.textContent = connected
-      ? `Connected to ${deviceName ?? 'board'}`
-      : busy
-        ? 'Connecting…'
-        : 'Not connected';
-    refs.status.classList.toggle('ok', connected);
-    refs.status.classList.toggle('busy', busy);
-
-    refs.toggle.textContent = busy ? 'Connecting…' : connected ? 'Disconnect' : 'Connect';
-    refs.toggle.dataset.connected = String(connected);
-    refs.toggle.disabled = busy || !supported;
-
+  function render({ state, rolls, connected }) {
     refs.mode.textContent = connected ? 'Live' : 'Demo';
     refs.mode.classList.toggle('live', connected);
     refs.hint.textContent = connected ? HINT_LIVE : HINT_DEMO;
@@ -133,8 +108,6 @@ export function bindPanel(doc, { onToggle, onPickFace }) {
     setAxisBar(refs.barAz, state.az);
 
     renderRolls(rolls);
-
-    refs.message.textContent = supported ? (error ?? '') : UNSUPPORTED_MESSAGE;
   }
 
   return { render };

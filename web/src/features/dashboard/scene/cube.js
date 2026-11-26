@@ -3,8 +3,8 @@
 // The 3D die. It follows the board's tilt on a spring, snaps to the reported face
 // once the board is still, hops when a roll lands, and glows in the face color.
 
-import { FACE_GRAVITY, FACE_NUMBERS, NO_FACE, faceColor } from '../dice/faces.js';
-import { isNewRoll } from '../dice/history.js';
+import { FACE_GRAVITY, FACE_NUMBERS, NO_FACE, faceColor } from '../../../dice/faces.js';
+import { isNewRoll } from '../../../dice/history.js';
 import { HOP_IMPULSE, approach, sensorToSceneUp, stepHop } from './motion.js';
 import { createOrbit } from './orbit.js';
 import { createFaceTexture, createRadialTexture } from './textures.js';

@@ -1,26 +1,15 @@
-// Entry point: wires the dice state, the 3D cube and the panel together.
+// Entry point: creates the shared services, then hands the pages to the shell.
 
-import { createDiceController } from './dice/controller.js';
-import { createCube } from './scene/cube.js';
-import { bindPanel } from './ui/panel.js';
+import { bindAmbient } from './app/ambient.js';
+import { bindConnection } from './app/connection.js';
+import { FEATURES } from './app/features.js';
+import { startShell } from './app/shell.js';
+import { bindDemoKeys } from './dice/demo-keys.js';
+import { createDiceService } from './dice/service.js';
 
-const view = document.getElementById('view');
-if (!view) throw new Error('Missing #view element');
+const dice = createDiceService();
 
-let controller;
-
-const panel = bindPanel(document, {
-  onToggle: () => {
-    void controller.toggle();
-  },
-  onPickFace: (face) => {
-    controller.showDemoFace(face);
-  },
-});
-
-const cube = createCube(view);
-
-controller = createDiceController((snapshot) => {
-  panel.render(snapshot);
-  cube.setReading(snapshot.state);
-});
+bindDemoKeys(window, dice);
+bindConnection(document, dice);
+bindAmbient(document, dice);
+startShell({ doc: document, win: window, features: FEATURES, services: { dice } });
