@@ -19,6 +19,9 @@ export function createDiceController(onChange) {
   let deviceName = null;
   let busy = false;
   let error = null;
+  let asleep = false;
+  let leaving = false;
+  let fresh = false;
   /** @type {{ name: string, disconnect: () => void } | null} */
   let link = null;
 
@@ -31,11 +34,13 @@ export function createDiceController(onChange) {
       busy,
       error,
       supported,
+      asleep,
     });
   }
 
   function setState(next) {
-    if (isNewRoll(state, next)) rolls = addRoll(rolls, next.face);
+    if (!fresh && isNewRoll(state, next)) rolls = addRoll(rolls, next.face);
+    fresh = false;
     state = next;
     notify();
   }
@@ -55,16 +60,22 @@ export function createDiceController(onChange) {
   async function toggle() {
     error = null;
     if (link) {
+      leaving = true;
       link.disconnect();
       return;
     }
 
     busy = true;
+    asleep = false;
+    leaving = false;
+    fresh = true;
     notify();
     try {
       link = await connect({
         onState: setState,
         onDisconnect: () => {
+          asleep = !leaving && state.sleepIn === 0;
+          leaving = false;
           link = null;
           deviceName = null;
           notify();
@@ -77,6 +88,7 @@ export function createDiceController(onChange) {
         error = `Could not connect: ${reason}`;
       }
     } finally {
+      if (!link) fresh = false;
       busy = false;
       notify();
     }

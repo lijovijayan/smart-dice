@@ -12,7 +12,8 @@ import {
   toFace,
 } from '../src/dice/faces.js';
 import { addRoll, isNewRoll, MAX_ROLLS } from '../src/dice/history.js';
-import { parseState, STATE_PACKET_SIZE } from '../src/dice/protocol.js';
+import { formatDuration, powerStatus, SLEEP_WARNING_SECONDS } from '../src/dice/power.js';
+import { parseState, STATE_PACKET_FULL_SIZE, STATE_PACKET_SIZE } from '../src/dice/protocol.js';
 import { approach, clamp, HOP_IMPULSE, sensorToSceneUp, stepHop } from '../src/scene/motion.js';
 
 class AssertionError extends Error {}
@@ -31,13 +32,15 @@ function assertClose(actual, expected, tolerance = 1e-9) {
   assertTrue(Math.abs(actual - expected) <= tolerance, `expected ${expected}, got ${actual}`);
 }
 
-function packet(ax, ay, az, face, stable) {
-  const view = new DataView(new ArrayBuffer(STATE_PACKET_SIZE));
+function packet(ax, ay, az, face, stable, sleepIn) {
+  const size = sleepIn === undefined ? STATE_PACKET_SIZE : STATE_PACKET_FULL_SIZE;
+  const view = new DataView(new ArrayBuffer(size));
   view.setInt16(0, ax, true);
   view.setInt16(2, ay, true);
   view.setInt16(4, az, true);
   view.setUint8(6, face);
   view.setUint8(7, stable);
+  if (sleepIn !== undefined) view.setUint8(8, sleepIn);
   return view;
 }
 
@@ -52,7 +55,48 @@ const tests = [
         az: 0,
         face: 2,
         stable: true,
+        sleepIn: null,
       }),
+  ],
+  [
+    'parseState reads the seconds until sleep, and treats 255 and missing as "not reported"',
+    () => {
+      assertEqual(parseState(packet(0, 0, 1000, 1, 1, 42)).sleepIn, 42);
+      assertEqual(parseState(packet(0, 0, 1000, 1, 1, 0)).sleepIn, 0);
+      assertEqual(parseState(packet(0, 0, 1000, 1, 1, 255)).sleepIn, null);
+      assertEqual(parseState(packet(0, 0, 1000, 1, 1)).sleepIn, null);
+    },
+  ],
+  [
+    'formatDuration writes seconds and minutes',
+    () => {
+      assertEqual(formatDuration(0), '0 s');
+      assertEqual(formatDuration(45), '45 s');
+      assertEqual(formatDuration(120), '2 min');
+      assertEqual(formatDuration(185), '3 min 5 s');
+    },
+  ],
+  [
+    'powerStatus says asleep, going to sleep, awake, or unknown',
+    () => {
+      const asleep = powerStatus({ connected: false, asleep: true, sleepIn: 0 });
+      assertEqual([asleep.kind, asleep.label], ['asleep', 'Asleep']);
+
+      const idle = powerStatus({ connected: false, asleep: false, sleepIn: null });
+      assertEqual(idle.kind, 'unknown');
+
+      const awake = powerStatus({ connected: true, asleep: false, sleepIn: 120 });
+      assertEqual([awake.kind, awake.label], ['awake', 'Awake']);
+      assertTrue(awake.note.includes('2 min'), 'the note gives the time left');
+
+      const soon = powerStatus({ connected: true, asleep: false, sleepIn: SLEEP_WARNING_SECONDS });
+      assertEqual([soon.kind, soon.label], ['soon', 'Sleeping in 20 s']);
+      assertEqual(powerStatus({ connected: true, asleep: false, sleepIn: 0 }).label, 'Going to sleep');
+
+      const off = powerStatus({ connected: true, asleep: false, sleepIn: null });
+      assertEqual([off.kind, off.label], ['unknown', 'Awake']);
+      assertEqual(powerStatus({ connected: true, asleep: false, sleepIn: undefined }).kind, 'unknown');
+    },
   ],
   [
     'parseState reads little-endian negative values',

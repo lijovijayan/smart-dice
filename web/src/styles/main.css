@@ -15,6 +15,7 @@
   --ok: #34c98b;
   --warn: #f2a13a;
   --info: #4f7cff;
+  --sleep: #a877ff;
   --error: #ff8a8a;
   --radius: 14px;
   --face: #4f7cff;
@@ -106,11 +107,19 @@ h2 {
   color: var(--ok);
 }
 
+.status.asleep {
+  color: var(--sleep);
+}
+
 .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--muted);
+}
+
+.status.asleep .dot {
+  background: var(--sleep);
 }
 
 .status.ok .dot {
@@ -321,6 +330,32 @@ main {
 
 .pill[data-kind='stable'] {
   --pill: var(--ok);
+}
+
+.pill[data-kind='awake'] {
+  --pill: var(--ok);
+}
+
+.pill[data-kind='soon'] {
+  --pill: var(--warn);
+}
+
+.pill[data-kind='asleep'] {
+  --pill: var(--sleep);
+}
+
+.pill[data-kind='unknown'] {
+  --pill: var(--muted);
+}
+
+.power-pill {
+  display: inline-block;
+}
+
+.power-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .faces {

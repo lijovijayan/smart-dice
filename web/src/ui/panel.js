@@ -1,6 +1,7 @@
 // Keeps the header and side panel in sync with the dice state.
 
 import { FACE_NUMBERS, NO_FACE, faceColor } from '../dice/faces.js';
+import { powerStatus } from '../dice/power.js';
 
 const UNSUPPORTED_MESSAGE =
   'This browser has no Web Bluetooth. Use Chrome or Edge on a laptop or Android phone.';
@@ -47,6 +48,8 @@ export function bindPanel(doc, { onToggle, onPickFace }) {
     barAx: el('bar-ax'),
     barAy: el('bar-ay'),
     barAz: el('bar-az'),
+    power: el('power'),
+    powerNote: el('power-note'),
     history: el('history'),
     historyEmpty: el('history-empty'),
     message: el('message'),
@@ -98,14 +101,22 @@ export function bindPanel(doc, { onToggle, onPickFace }) {
     refs.face.classList.add('pop');
   }
 
-  function render({ state, rolls, deviceName, connected, busy, error, supported }) {
+  function render({ state, rolls, deviceName, connected, busy, error, supported, asleep = false }) {
     refs.statusText.textContent = connected
       ? `Connected to ${deviceName ?? 'board'}`
       : busy
         ? 'Connecting…'
-        : 'Not connected';
+        : asleep
+          ? 'Board asleep'
+          : 'Not connected';
     refs.status.classList.toggle('ok', connected);
     refs.status.classList.toggle('busy', busy);
+    refs.status.classList.toggle('asleep', asleep && !connected && !busy);
+
+    const power = powerStatus({ connected, asleep, sleepIn: state.sleepIn });
+    refs.power.textContent = power.label;
+    refs.power.dataset.kind = power.kind;
+    refs.powerNote.textContent = power.note;
 
     refs.toggle.textContent = busy ? 'Connecting…' : connected ? 'Disconnect' : 'Connect';
     refs.toggle.dataset.connected = String(connected);

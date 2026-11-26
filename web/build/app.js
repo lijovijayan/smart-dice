@@ -92,13 +92,17 @@ const SERVICE_UUID = 'f0bd0001-2ae7-429a-8fe0-3aa48ebf8220';
 const STATE_UUID = 'f0bd0002-2ae7-429a-8fe0-3aa48ebf8220';
 
 const STATE_PACKET_SIZE = 8;
+const STATE_PACKET_FULL_SIZE = 9;
+const SLEEP_IN_OFF = 255;
 
 const MILLI_G_PER_G = 1000;
 
 /**
- * Decodes the 8-byte little-endian state packet.
+ * Decodes the little-endian state packet: 8 bytes, or 9 when the board also reports how
+ * long until it goes to sleep. `sleepIn` is that time in seconds, or null when the board
+ * does not report it or has auto sleep turned off.
  * @param {DataView} view
- * @returns {{ ax: number, ay: number, az: number, face: number, stable: boolean }}
+ * @returns {{ ax: number, ay: number, az: number, face: number, stable: boolean, sleepIn: number | null }}
  * @throws {RangeError} if the packet is shorter than STATE_PACKET_SIZE.
  */
 function parseState(view) {
@@ -107,12 +111,14 @@ function parseState(view) {
       `State packet must be ${STATE_PACKET_SIZE} bytes, got ${view.byteLength}`,
     );
   }
+  const sleepIn = view.byteLength >= STATE_PACKET_FULL_SIZE ? view.getUint8(8) : SLEEP_IN_OFF;
   return {
     ax: view.getInt16(0, true) / MILLI_G_PER_G,
     ay: view.getInt16(2, true) / MILLI_G_PER_G,
     az: view.getInt16(4, true) / MILLI_G_PER_G,
     face: toFace(view.getUint8(6)),
     stable: view.getUint8(7) === 1,
+    sleepIn: sleepIn === SLEEP_IN_OFF ? null : sleepIn,
   };
 }
 
@@ -212,6 +218,9 @@ function createDiceController(onChange) {
   let deviceName = null;
   let busy = false;
   let error = null;
+  let asleep = false;
+  let leaving = false;
+  let fresh = false;
   /** @type {{ name: string, disconnect: () => void } | null} */
   let link = null;
 
@@ -224,11 +233,13 @@ function createDiceController(onChange) {
       busy,
       error,
       supported,
+      asleep,
     });
   }
 
   function setState(next) {
-    if (isNewRoll(state, next)) rolls = addRoll(rolls, next.face);
+    if (!fresh && isNewRoll(state, next)) rolls = addRoll(rolls, next.face);
+    fresh = false;
     state = next;
     notify();
   }
@@ -248,16 +259,22 @@ function createDiceController(onChange) {
   async function toggle() {
     error = null;
     if (link) {
+      leaving = true;
       link.disconnect();
       return;
     }
 
     busy = true;
+    asleep = false;
+    leaving = false;
+    fresh = true;
     notify();
     try {
       link = await connect({
         onState: setState,
         onDisconnect: () => {
+          asleep = !leaving && state.sleepIn === 0;
+          leaving = false;
           link = null;
           deviceName = null;
           notify();
@@ -270,6 +287,7 @@ function createDiceController(onChange) {
         error = `Could not connect: ${reason}`;
       }
     } finally {
+      if (!link) fresh = false;
       busy = false;
       notify();
     }
@@ -861,6 +879,54 @@ function createCube(container) {
   return { setReading, dispose, group, die };
 }
 
+// --- dice/power.js ---
+// What to tell the person about the board's power: awake, about to sleep, or asleep.
+
+const SLEEP_WARNING_SECONDS = 20;
+
+/** 45 -> "45 s", 120 -> "2 min", 185 -> "3 min 5 s". */
+function formatDuration(seconds) {
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`;
+}
+
+/**
+ * @param {{ connected: boolean, asleep: boolean, sleepIn: number | null | undefined }} power
+ * @returns {{ kind: 'awake' | 'soon' | 'asleep' | 'unknown', label: string, note: string }}
+ */
+function powerStatus({ connected, asleep, sleepIn }) {
+  if (asleep) {
+    return {
+      kind: 'asleep',
+      label: 'Asleep',
+      note: 'The board went to sleep after no movement. Move it to wake it, then press Connect.',
+    };
+  }
+  if (!connected) {
+    return { kind: 'unknown', label: 'Not connected', note: 'Connect the board to see its power state.' };
+  }
+  if (sleepIn === null || sleepIn === undefined) {
+    return { kind: 'unknown', label: 'Awake', note: 'Auto sleep is off, or this board does not report it.' };
+  }
+  if (sleepIn === 0) {
+    return { kind: 'soon', label: 'Going to sleep', note: 'No movement for a while. Move the die to wake it.' };
+  }
+  if (sleepIn <= SLEEP_WARNING_SECONDS) {
+    return {
+      kind: 'soon',
+      label: `Sleeping in ${formatDuration(sleepIn)}`,
+      note: 'Move the die to keep it awake.',
+    };
+  }
+  return {
+    kind: 'awake',
+    label: 'Awake',
+    note: `Goes to sleep after ${formatDuration(sleepIn)} without movement.`,
+  };
+}
+
 // --- ui/panel.js ---
 // Keeps the header and side panel in sync with the dice state.
 
@@ -910,6 +976,8 @@ function bindPanel(doc, { onToggle, onPickFace }) {
     barAx: el('bar-ax'),
     barAy: el('bar-ay'),
     barAz: el('bar-az'),
+    power: el('power'),
+    powerNote: el('power-note'),
     history: el('history'),
     historyEmpty: el('history-empty'),
     message: el('message'),
@@ -961,14 +1029,22 @@ function bindPanel(doc, { onToggle, onPickFace }) {
     refs.face.classList.add('pop');
   }
 
-  function render({ state, rolls, deviceName, connected, busy, error, supported }) {
+  function render({ state, rolls, deviceName, connected, busy, error, supported, asleep = false }) {
     refs.statusText.textContent = connected
       ? `Connected to ${deviceName ?? 'board'}`
       : busy
         ? 'Connecting…'
-        : 'Not connected';
+        : asleep
+          ? 'Board asleep'
+          : 'Not connected';
     refs.status.classList.toggle('ok', connected);
     refs.status.classList.toggle('busy', busy);
+    refs.status.classList.toggle('asleep', asleep && !connected && !busy);
+
+    const power = powerStatus({ connected, asleep, sleepIn: state.sleepIn });
+    refs.power.textContent = power.label;
+    refs.power.dataset.kind = power.kind;
+    refs.powerNote.textContent = power.note;
 
     refs.toggle.textContent = busy ? 'Connecting…' : connected ? 'Disconnect' : 'Connect';
     refs.toggle.dataset.connected = String(connected);

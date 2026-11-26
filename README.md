@@ -79,30 +79,27 @@ dropdown does not show which package a board belongs to.
 ### 4. Upload
 
 1. Open `firmware/smart_dice/smart_dice.ino`.
-2. Close any open Serial Monitor, then click **Upload**.
-3. Open **Tools → Serial Monitor** at 115200 baud. You should see:
-
-   ```
-   Smart Dice starting
-   IMU ready
-   SmartDice advertising, address xx:xx:xx:xx:xx:xx
-   ```
-
-4. Turn the board. Each change prints `Face: N`, and a face that holds still
-   prints `Rolled: N`.
+2. Click **Upload**. The board needs its USB port for the upload, so select it
+   under **Tools → Port** first.
+3. After upload, the board starts advertising as `SmartDice` and the LED blinks
+   every 5 seconds. Connect from the dashboard to check it.
 
 ### What the board does
 
-- **Serial Monitor:** face changes, finished rolls, and Bluetooth connects and
-  disconnects are printed. Set `LOG_SAMPLES` to `true` in the sketch to print
-  every reading. The board waits 2 seconds at start for the monitor to attach.
+- **No serial output:** the sketch does not use the serial port, so there is no
+  Serial Monitor output. Check the board from the dashboard instead.
+- **Failure signal:** if the IMU or Bluetooth fails to start, the LED blinks
+  fast and does not stop. Reset the board to try again.
 - **Heartbeat:** the built-in LED blinks once every 5 seconds to show the board
-  is running.
-- **Auto sleep:** after 60 seconds without movement, with no dashboard
-  connected, the board sleeps. It checks for movement every half second and
-  prints `Asleep` and `Awake`. Moving the die or connecting the dashboard wakes
-  it. It keeps advertising while asleep. Set `AUTO_SLEEP_MS` to `0` to turn
-  sleep off.
+  is awake. It stays dark while the board sleeps.
+- **Low power:** the gyroscope is never used, so it is switched off, and the
+  accelerometer runs at 52 Hz.
+- **Auto sleep:** with no movement for 60 seconds (3 minutes while a dashboard
+  is connected), the board goes to sleep. If a dashboard is connected, the board
+  first tells it, then disconnects. Asleep, it stops advertising, checks for
+  movement twice a second, and sends nothing. Picking up the die wakes it and
+  it advertises again. The times are `SLEEP_AFTER_MS` and `SLEEP_AFTER_CONNECTED_MS` in the sketch; set one to
+  `0` to turn sleep off for that case.
 
 Check these steps against Seeed's XIAO nRF52840 Sense guide when you first set
 up, since package names change between releases:
@@ -125,6 +122,12 @@ On Windows use `py build.py`. The script writes `web/build/` and opens
 or Edge. Web Bluetooth does not work in Safari, Firefox, or any iPhone browser.
 
 Without a board, press keys 1 to 6 to move the cube (demo mode).
+
+The **Power** card shows whether the board is awake, how long until it goes to
+sleep, or that it is asleep. The header also says "Board asleep" after a sleep
+disconnect. A sleeping board does not appear in the Bluetooth popup: move it
+first, wait a second, then press **Connect**. Connecting does not count as a roll,
+even if the die is already resting on a face.
 
 The logic tests still need a local server, because they load modules:
 
@@ -151,6 +154,7 @@ connects directly.
 
 If SmartDice is not in the popup:
 
+- The board may be asleep. Pick it up or move it, then try again.
 - On macOS, allow Chrome under **System Settings → Privacy & Security →
   Bluetooth**, then restart Chrome.
 - Press the board's reset button once and try again.
@@ -204,8 +208,8 @@ under **Seeed nRF52 mbed-enabled Boards**.
 A different board (for example XIAO MG24) is selected. See step 3.
 
 **`Resource busy` on upload**
-Another program has the serial port open. Close Serial Monitor and Serial
-Plotter in every Arduino IDE window, then upload again. On macOS,
+Another program has the serial port open. Close any serial terminal or other
+Arduino IDE window that is using the board, then upload again. On macOS,
 `lsof | grep usbmodem` shows what is holding the port.
 
 **Board does not appear as a port, or upload will not start**
@@ -213,8 +217,8 @@ Double-tap the reset button. The board appears as a USB drive. Select the port
 again (its number may change) and upload.
 
 **Board is not in the Bluetooth popup**
-See the list under Part 3. Check the serial output first: if it shows
-`SmartDice advertising`, the board is fine.
+See the list under Part 3. If the board is asleep, move it first. The LED
+blinking every 5 seconds means it is awake.
 
 **macOS: `pyenv: python: command not found`**
 The build runs a command called `python`. Set a default version, then restart
@@ -242,7 +246,7 @@ Without pyenv, use `$(which adafruit-nrfutil)` in the `cp` line.
 
 ## Build order
 
-1. Board on USB only: upload the firmware, watch Serial Monitor.
+1. Board on USB only: upload the firmware, check the LED and the dashboard.
 2. Connect from the dashboard and confirm the cube follows the board.
 3. Add the battery.
 4. Print the box and label the faces to match.

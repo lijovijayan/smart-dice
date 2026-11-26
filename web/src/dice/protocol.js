@@ -7,13 +7,17 @@ export const SERVICE_UUID = 'f0bd0001-2ae7-429a-8fe0-3aa48ebf8220';
 export const STATE_UUID = 'f0bd0002-2ae7-429a-8fe0-3aa48ebf8220';
 
 export const STATE_PACKET_SIZE = 8;
+export const STATE_PACKET_FULL_SIZE = 9;
+export const SLEEP_IN_OFF = 255;
 
 const MILLI_G_PER_G = 1000;
 
 /**
- * Decodes the 8-byte little-endian state packet.
+ * Decodes the little-endian state packet: 8 bytes, or 9 when the board also reports how
+ * long until it goes to sleep. `sleepIn` is that time in seconds, or null when the board
+ * does not report it or has auto sleep turned off.
  * @param {DataView} view
- * @returns {{ ax: number, ay: number, az: number, face: number, stable: boolean }}
+ * @returns {{ ax: number, ay: number, az: number, face: number, stable: boolean, sleepIn: number | null }}
  * @throws {RangeError} if the packet is shorter than STATE_PACKET_SIZE.
  */
 export function parseState(view) {
@@ -22,11 +26,13 @@ export function parseState(view) {
       `State packet must be ${STATE_PACKET_SIZE} bytes, got ${view.byteLength}`,
     );
   }
+  const sleepIn = view.byteLength >= STATE_PACKET_FULL_SIZE ? view.getUint8(8) : SLEEP_IN_OFF;
   return {
     ax: view.getInt16(0, true) / MILLI_G_PER_G,
     ay: view.getInt16(2, true) / MILLI_G_PER_G,
     az: view.getInt16(4, true) / MILLI_G_PER_G,
     face: toFace(view.getUint8(6)),
     stable: view.getUint8(7) === 1,
+    sleepIn: sleepIn === SLEEP_IN_OFF ? null : sleepIn,
   };
 }
